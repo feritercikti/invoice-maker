@@ -5,3 +5,27 @@
 body {
   background-color: #dcdcdc;
 }
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+input[type='date']:hover::-webkit-calendar-picker-indicator {
+  display: block;
+  position: relative;
+  left: -10px;
+  cursor: pointer;
+}
+
+tr button {
+  display: none;
+}
+
+/* Show the delete button when hovering over the row */
+tr:hover button {
+  display: block;
+}
+
+td {
+  vertical-align: middle;
+}
