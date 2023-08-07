@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { jsPDF } from 'jspdf'
 
 const time0 = ref<Date | null>(new Date())
@@ -10,6 +10,30 @@ const time1 = ref<Date | null>(oneMonthFromNow)
 
 const showDeleteButton = ref<boolean>(false)
 const pdfRef = ref<null | HTMLElement>(null)
+const taxRate = ref(0.14) // Example tax rate
+
+const calculateSubtotal = () => {
+  let subtotal = 0
+  lineItems.value.forEach((item) => {
+    subtotal += parseFloat(calculateAmount(item.quantity, item.rate))
+  })
+  return subtotal
+}
+
+const calculatedSaleTax = computed(() => {
+  return calculateSubtotal() * taxRate.value
+})
+
+const calculatedTotal = computed(() => {
+  return calculateSubtotal() + calculatedSaleTax.value
+})
+
+const updateTaxRate = (event: any) => {
+  const inputValue = parseFloat(event.target.value)
+  if (!isNaN(inputValue)) {
+    taxRate.value = inputValue / 100
+  }
+}
 
 const lineItems = ref([{ description: '', quantity: '1', rate: '0.00', amount: '0.00' }])
 
@@ -141,16 +165,16 @@ const generatePDF = async () => {
             <div class="flex-2 flex-col">
               <input
                 placeholder="INV-12"
-                class="hover:bg-amber-100 text-[14px] w-[140px] mb-5 focus:bg-amber-100 h-8 font-bold outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 font-bold outline-none"
               />
               <input
                 type="date"
-                class="hover:bg-amber-100 text-[14px] w-[140px] mb-5 focus:bg-amber-100 h-8 outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 outline-none"
                 v-model="time0"
               />
               <input
                 type="date"
-                class="hover:bg-amber-100 text-[14px] w-[140px] mb-5 focus:bg-amber-100 h-8 outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 outline-none"
                 v-model="time1"
               />
             </div>
@@ -178,7 +202,7 @@ const generatePDF = async () => {
                     class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent text-[14px] focus:bg-amber-100 focus:text-black h-8 font-bold outline-none w-[100px] text-right"
                   />
                 </th>
-                <th class="py-2 pr-4">
+                <th class="py-2 px-4">
                   <input
                     value="Amount"
                     class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent text-[14px] focus:bg-amber-100 focus:text-black h-8 font-bold outline-none w-[100px] text-right"
@@ -192,7 +216,7 @@ const generatePDF = async () => {
                 :key="index"
                 class="bg-white hover:bg-gray-200 relative"
               >
-                <td class="py-2 px-4">
+                <td class="py-2 px-2">
                   <textarea
                     placeholder="Enter item name/description"
                     class="text-black hover:bg-amber-100 text-[14px] focus:bg-amber-100"
@@ -236,22 +260,23 @@ const generatePDF = async () => {
               value="Sub Total"
               class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
             />
-            <div class="inline-block align-middle">200.00</div>
+            <div class="inline-block align-middle">{{ calculateSubtotal().toFixed(2) }}</div>
           </div>
         </div>
         <div class="flex max-w-full justify-end mx-10">
           <div class="flex gap-10 items-center w-fit text-[14px]">
             <input
-              value="Sale Tax"
+              :value="'Sale Tax ' + (taxRate * 100).toFixed(0) + '%'"
               class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
+              @input="updateTaxRate"
             />
-            <div>28.00</div>
+            <div>{{ calculatedSaleTax.toFixed(2) }}</div>
           </div>
         </div>
         <div class="flex max-w-full justify-end mx-10 mb-5 mt-2">
           <div class="flex gap-[92px] items-center w-fit text-[14px]">
             <h1>TOTAL</h1>
-            <div>228.00</div>
+            <div>{{ calculatedTotal.toFixed(2) }}</div>
           </div>
         </div>
         <div class="flex flex-col max-w-full mx-10 mb-1">
