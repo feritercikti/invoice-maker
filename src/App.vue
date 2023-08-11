@@ -119,6 +119,15 @@ const generatePDF = async () => {
 </script>
 
 <template>
+  <div class="w-full flex justify-end">
+    <a href="https://github.com/feritercikti/invoice-maker" target="_blank">
+      <font-awesome-icon
+        :icon="['fab', 'github']"
+        size="2xl"
+        class="mt-2 mx-10 cursor-pointer hover:text-gray-500"
+      />
+    </a>
+  </div>
   <div class="flex items-center justify-center">
     <div>
       <button @click="generatePDF" class="px-2 py-1 text-white bg-emerald-600 hover:bg-emerald-900">
