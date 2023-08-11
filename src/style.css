@@ -29,3 +29,41 @@ tr:hover button {
 td {
   vertical-align: middle;
 }
+
+.custom-file-input {
+  display: inline-block;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  background-color: #eee;
+  border: 2px solid #ccc;
+  border-style: dashed;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100px;
+}
+
+.custom-file-input input {
+  display: none;
+}
+
+.image-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: fit-content;
+}
+
+.change-image-text {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 0.4s;
+  font-size: 14px;
+}
+
+.image-container:hover .change-image-text {
+  opacity: 1;
+}
+
+tbody tr:last-child {
+  border-right-width: 0;
+}

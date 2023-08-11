@@ -1,16 +1,40 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { jsPDF } from 'jspdf'
 
 const time0 = ref<Date | null>(new Date())
 
-const oneMonthFromNow = new Date()
-oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1)
-const time1 = ref<Date | null>(oneMonthFromNow)
+const time1 = ref<Date | null>(new Date())
 
-const showDeleteButton = ref<boolean>(false)
+let showDeleteButton = ref(-1)
 const pdfRef = ref<null | HTMLElement>(null)
-const taxRate = ref(0.14) // Example tax rate
+const taxRate = ref(15)
+const logoUrl = ref<string | null>(null)
+let fileInput: HTMLInputElement | null = null
+
+onMounted(() => {
+  fileInput = document.createElement('input')
+  fileInput.type = 'file'
+  fileInput.accept = 'image/*'
+  fileInput.addEventListener('change', handleLogoChange)
+})
+
+const handleLogoChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    logoUrl.value = URL.createObjectURL(file)
+    fileInput!.style.display = 'none'
+  } else {
+    logoUrl.value = null
+  }
+}
+
+const openFileInput = () => {
+  if (fileInput) {
+    fileInput.click()
+  }
+}
 
 const calculateSubtotal = () => {
   let subtotal = 0
@@ -20,25 +44,31 @@ const calculateSubtotal = () => {
   return subtotal
 }
 
+const updateTaxRate = (event: any) => {
+  const newValue = event.target.value
+  const numericValue = parseFloat(newValue)
+
+  if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 100) {
+    taxRate.value = numericValue
+  }
+}
+
 const calculatedSaleTax = computed(() => {
-  return calculateSubtotal() * taxRate.value
+  return calculateSubtotal() * (taxRate.value / 100)
 })
 
 const calculatedTotal = computed(() => {
   return calculateSubtotal() + calculatedSaleTax.value
 })
 
-const updateTaxRate = (event: any) => {
-  const inputValue = parseFloat(event.target.value)
-  if (!isNaN(inputValue)) {
-    taxRate.value = inputValue / 100
-  }
-}
-
 const lineItems = ref([{ description: '', quantity: '1', rate: '0.00', amount: '0.00' }])
 
 function addLineItem() {
   lineItems.value.push({ description: '', quantity: '1', rate: '0.00', amount: '0.00' })
+}
+
+const deleteItem = (index: number) => {
+  lineItems.value.splice(index, 1)
 }
 
 function updateDescription(index: number, value: string) {
@@ -68,20 +98,29 @@ function calculateAmount(quantity: string, rate: string): string {
 const generatePDF = async () => {
   if (!pdfRef.value) return
 
-  const doc = new jsPDF('p', 'px', [700, 900])
+  const pdfContentHeight = pdfRef.value.offsetHeight
+
+  const doc = new jsPDF('p', 'px', [700, pdfContentHeight])
 
   const addButton = pdfRef.value.querySelector('.exclude-from-pdf')
+  const logoSection = pdfRef.value.querySelector('.excludelogo-from-pdf')
   if (addButton) {
-    ;(addButton as HTMLElement).style.display = 'none' // Cast to HTMLElement
+    ;(addButton as HTMLElement).style.display = 'none'
+  }
+  if (logoSection) {
+    ;(logoSection as HTMLElement).style.display = 'none'
   }
 
   await doc.html(pdfRef.value, {
     callback(doc) {
       doc.deletePage(2)
 
-      doc.save('document.pdf')
+      doc.save('invoice.pdf')
       if (addButton) {
-        ;(addButton as HTMLElement).style.display = 'block' // Cast to HTMLElement
+        ;(addButton as HTMLElement).style.display = 'block'
+      }
+      if (logoSection) {
+        ;(logoSection as HTMLElement).style.display = 'block'
       }
     }
   })
@@ -96,12 +135,24 @@ const generatePDF = async () => {
         Online Invoicing Software Tool - Create, Generate and Download Invoices or Invoice Templates
         as PDF
       </h1>
-      <button @click="generatePDF" class="px-2 py-1 text-white bg-emerald-700">
-        Click to generate
+      <button @click="generatePDF" class="px-2 py-1 text-white bg-emerald-600 hover:bg-emerald-900">
+        Save as PDF
       </button>
       <div class="flex flex-col bg-white w-[700px] h-fit shadow-xl" ref="pdfRef">
         <div class="flex gap-2 w-fit m-10">
           <div class="flex-1 flex flex-col">
+            <label class="custom-file-input excludelogo-from-pdf" v-if="!logoUrl">
+              Your Logo
+              <input type="file" accept="image/*" @change="handleLogoChange" class="hidden" />
+            </label>
+            <div
+              v-if="logoUrl"
+              class="image-container cursor-pointer relative"
+              @click="openFileInput"
+            >
+              <img :src="logoUrl" alt="Company Logo" class="h-16" />
+              <div class="change-image-text">Change Image</div>
+            </div>
             <input
               placeholder="Your Company"
               class="hover:bg-amber-100 text-[18px] focus:bg-amber-100 h-10 font-bold outline-none"
@@ -116,6 +167,10 @@ const generatePDF = async () => {
             />
             <input
               placeholder="City,State Zip"
+              class="hover:bg-amber-100 text-[14px] focus:bg-amber-100 h-8 outline-none"
+            />
+            <input
+              placeholder="Country"
               class="hover:bg-amber-100 text-[14px] focus:bg-amber-100 h-8 outline-none"
             />
           </div>
@@ -146,16 +201,20 @@ const generatePDF = async () => {
               placeholder="City,State Zip"
               class="hover:bg-amber-100 text-[14px] focus:bg-amber-100 h-8 outline-none"
             />
+            <input
+              placeholder="Country"
+              class="hover:bg-amber-100 text-[14px] focus:bg-amber-100 h-8 outline-none"
+            />
           </div>
           <div class="flex flex-1 gap-2">
             <div class="flex-1 flex-col">
               <input
                 value="Invoice#"
-                class="hover:bg-amber-100 text-[14px] w-[120px] mb-5 focus:bg-amber-100 h-8 font-bold outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[120px] focus:bg-amber-100 h-8 font-bold outline-none"
               />
               <input
                 value="Invoice Date"
-                class="hover:bg-amber-100 text-[14px] mb-5 w-[120px] focus:bg-amber-100 h-8 font-bold outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[120px] focus:bg-amber-100 h-8 font-bold outline-none"
               />
               <input
                 value="Due Date"
@@ -165,16 +224,16 @@ const generatePDF = async () => {
             <div class="flex-2 flex-col">
               <input
                 placeholder="INV-12"
-                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 font-bold outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] focus:bg-amber-100 h-8 font-bold outline-none"
               />
               <input
                 type="date"
-                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] focus:bg-amber-100 h-8 outline-none"
                 v-model="time0"
               />
               <input
                 type="date"
-                class="hover:bg-amber-100 text-[14px] w-[135px] mb-5 focus:bg-amber-100 h-8 outline-none"
+                class="hover:bg-amber-100 text-[14px] w-[135px] focus:bg-amber-100 h-8 outline-none"
                 v-model="time1"
               />
             </div>
@@ -214,7 +273,9 @@ const generatePDF = async () => {
               <tr
                 v-for="(item, index) in lineItems"
                 :key="index"
-                class="bg-white hover:bg-gray-200 relative"
+                class="bg-white relative"
+                @mouseenter="showDeleteButton = index"
+                @mouseleave="showDeleteButton = -1"
               >
                 <td class="py-2 px-2">
                   <textarea
@@ -243,6 +304,14 @@ const generatePDF = async () => {
                 <td class="py-2 font-bold px-4 text-right text-[14px]">
                   {{ calculateAmount(item.quantity, item.rate) }}
                 </td>
+                <td class="py-2 text-right divide-y-0 divide-x-0" v-if="showDeleteButton === index">
+                  <button
+                    class="hover:text-red-800 text-xl text-red-700"
+                    @click="deleteItem(index)"
+                  >
+                    x
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -266,13 +335,15 @@ const generatePDF = async () => {
         <div class="flex max-w-full justify-end mx-10">
           <div class="flex gap-10 items-center w-fit text-[14px]">
             <input
-              :value="'Sale Tax ' + (taxRate * 100).toFixed(0) + '%'"
-              class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
-              @input="updateTaxRate"
+              :value="'Sale Tax ' + taxRate + '%'"
+              @change="updateTaxRate"
+              @blur="updateTaxRate"
+              class="hover:bg-amber-100 mr-5 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
             />
             <div>{{ calculatedSaleTax.toFixed(2) }}</div>
           </div>
         </div>
+
         <div class="flex max-w-full justify-end mx-10 mb-5 mt-2">
           <div class="flex gap-[92px] items-center w-fit text-[14px]">
             <h1>TOTAL</h1>
