@@ -44,15 +44,6 @@ const calculateSubtotal = () => {
   return subtotal
 }
 
-const updateTaxRate = (event: any) => {
-  const newValue = event.target.value
-  const numericValue = parseFloat(newValue)
-
-  if (!isNaN(numericValue) && numericValue >= 0 && numericValue <= 100) {
-    taxRate.value = numericValue
-  }
-}
-
 const calculatedSaleTax = computed(() => {
   return calculateSubtotal() * (taxRate.value / 100)
 })
@@ -71,17 +62,17 @@ const deleteItem = (index: number) => {
   lineItems.value.splice(index, 1)
 }
 
-function updateDescription(index: number, value: string) {
-  lineItems.value[index].description = value
-}
+// function updateDescription(index: number, value: string) {
+//   lineItems.value[index].description = value
+// }
 
-function updateQuantity(index: number, value: string) {
-  lineItems.value[index].quantity = value
-}
+// function updateQuantity(index: number, value: string) {
+//   lineItems.value[index].quantity = value
+// }
 
-function updateRate(index: number, value: string) {
-  lineItems.value[index].rate = value
-}
+// function updateRate(index: number, value: string) {
+//   lineItems.value[index].rate = value
+// }
 
 function calculateAmount(quantity: string, rate: string): string {
   const parsedQuantity = parseFloat(quantity)
@@ -100,7 +91,7 @@ const generatePDF = async () => {
 
   const pdfContentHeight = pdfRef.value.offsetHeight
 
-  const doc = new jsPDF('p', 'px', [700, pdfContentHeight])
+  const doc = new jsPDF('p', 'px', [700, pdfContentHeight + 10])
 
   const addButton = pdfRef.value.querySelector('.exclude-from-pdf')
   const logoSection = pdfRef.value.querySelector('.excludelogo-from-pdf')
@@ -117,7 +108,7 @@ const generatePDF = async () => {
 
       doc.save('invoice.pdf')
       if (addButton) {
-        ;(addButton as HTMLElement).style.display = 'block'
+        ;(addButton as HTMLElement).style.display = 'flex'
       }
       if (logoSection) {
         ;(logoSection as HTMLElement).style.display = 'block'
@@ -129,15 +120,17 @@ const generatePDF = async () => {
 
 <template>
   <div class="flex items-center justify-center">
-    <div></div>
+    <div>
+      <button @click="generatePDF" class="px-2 py-1 text-white bg-emerald-600 hover:bg-emerald-900">
+        Save as PDF
+      </button>
+    </div>
     <div class="flex items-center flex-col w-[50%] gap-5 my-10">
       <h1 class="text-2xl text-center">
         Online Invoicing Software Tool - Create, Generate and Download Invoices or Invoice Templates
         as PDF
       </h1>
-      <button @click="generatePDF" class="px-2 py-1 text-white bg-emerald-600 hover:bg-emerald-900">
-        Save as PDF
-      </button>
+
       <div class="flex flex-col bg-white w-[700px] h-fit shadow-xl" ref="pdfRef">
         <div class="flex gap-2 w-fit m-10">
           <div class="flex-1 flex flex-col">
@@ -150,7 +143,7 @@ const generatePDF = async () => {
               class="image-container cursor-pointer relative"
               @click="openFileInput"
             >
-              <img :src="logoUrl" alt="Company Logo" class="h-16" />
+              <img :src="logoUrl" alt="Company Logo" class="h-20" />
               <div class="change-image-text">Change Image</div>
             </div>
             <input
@@ -174,10 +167,10 @@ const generatePDF = async () => {
               class="hover:bg-amber-100 text-[14px] focus:bg-amber-100 h-8 outline-none"
             />
           </div>
-          <div class="flex-1 w-fit">
+          <div class="flex-1">
             <input
               value="INVOICE"
-              class="hover:bg-amber-100 text-[36px] w-full text-right focus:bg-amber-100 px-2 h-14 outline-none"
+              class="hover:bg-amber-100 font-bold text-gray-900 text-[24px] w-full text-right focus:bg-amber-100 px-2 h-10 outline-none"
             />
           </div>
         </div>
@@ -242,7 +235,7 @@ const generatePDF = async () => {
         <div class="mx-10 my-10 mt-5">
           <table class="border-collapse">
             <thead>
-              <tr class="bg-green-600 text-white text-left">
+              <tr class="bg-gray-600 text-white text-left">
                 <th class="py-2 px-4">
                   <input
                     value="Item Description"
@@ -284,32 +277,29 @@ const generatePDF = async () => {
                     rows="2"
                     cols="30"
                     v-model="item.description"
-                    @input="updateDescription(index, item.description)"
                   ></textarea>
                 </td>
                 <td class="py-2 px-4">
                   <input
                     class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent text-[14px] focus:bg-amber-100 focus:text-black h-8 font-bold outline-none w-[100px] text-right"
                     v-model="item.quantity"
-                    @input="updateQuantity(index, item.quantity)"
                   />
                 </td>
                 <td class="py-2 px-4">
                   <input
                     class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent text-[14px] focus:bg-amber-100 focus:text-black h-8 font-bold outline-none w-[100px] text-right"
                     v-model="item.rate"
-                    @input="updateRate(index, item.rate)"
                   />
                 </td>
                 <td class="py-2 font-bold px-4 text-right text-[14px]">
                   {{ calculateAmount(item.quantity, item.rate) }}
                 </td>
-                <td class="py-2 text-right divide-y-0 divide-x-0" v-if="showDeleteButton === index">
+                <td class="py-2 text-right" v-if="showDeleteButton === index">
                   <button
-                    class="hover:text-red-800 text-xl text-red-700"
+                    class="text-sm inline-block py-[2px] px-1 bg-red-700 text-white"
                     @click="deleteItem(index)"
                   >
-                    x
+                    X
                   </button>
                 </td>
               </tr>
@@ -319,33 +309,36 @@ const generatePDF = async () => {
             class="w-fit flex gap-4 items-center text-center mt-5 exclude-from-pdf"
             @click="addLineItem"
           >
-            <div class="px-2 py-[2px] rounded-[50%] bg-green-400 text-white text-xl">+</div>
+            <div class="px-2 py-1 bg-green-700 text-white text-xl">+</div>
             <p>Add Line Item</p>
           </button>
         </div>
         <div class="flex max-w-full justify-end mx-10">
-          <div class="flex gap-10 items-center w-fit text-[14px]">
+          <div class="flex gap-8 items-center w-fit text-[14px]">
             <input
               value="Sub Total"
-              class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
+              class="text-right hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black font-bold outline-none w-[120px]"
             />
             <div class="inline-block align-middle">{{ calculateSubtotal().toFixed(2) }}</div>
           </div>
         </div>
         <div class="flex max-w-full justify-end mx-10">
-          <div class="flex gap-10 items-center w-fit text-[14px]">
+          <div class="flex items-center gap-1 w-fit text-[14px]">
             <input
-              :value="'Sale Tax ' + taxRate + '%'"
-              @change="updateTaxRate"
-              @blur="updateTaxRate"
-              class="hover:bg-amber-100 mr-5 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black h-7 font-bold outline-none w-[120px]"
+              value="Tax"
+              class="hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black font-bold outline-none w-fit text-right"
             />
+            <input
+              v-model="taxRate"
+              class="text-right hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black font-bold outline-none w-6"
+            />
+            <p class="mr-8 font-bold">%</p>
             <div>{{ calculatedSaleTax.toFixed(2) }}</div>
           </div>
         </div>
 
         <div class="flex max-w-full justify-end mx-10 mb-5 mt-2">
-          <div class="flex gap-[92px] items-center w-fit text-[14px]">
+          <div class="flex gap-8 items-center w-fit text-[14px]">
             <h1>TOTAL</h1>
             <div>{{ calculatedTotal.toFixed(2) }}</div>
           </div>
