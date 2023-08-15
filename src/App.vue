@@ -1,10 +1,80 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { jsPDF } from 'jspdf'
+
+type CurrencySymbols = {
+  [key: string]: string
+}
 
 const time0 = ref<Date | null>(new Date())
 
 const time1 = ref<Date | null>(new Date())
+
+const selectedCurrency = ref('USD')
+const showDropdown = ref(false)
+
+const currencySymbols: CurrencySymbols = {
+  AED: 'د.إ', // United Arab Emirates Dirham
+  ARS: '$', // Argentine Peso
+  AUD: '$', // Australian Dollar
+  BRL: 'R$', // Brazilian Real
+  CAD: '$', // Canadian Dollar
+  CHF: 'Fr.', // Swiss Franc
+  CNY: '¥', // Chinese Yuan
+  CZK: 'Kč', // Czech Koruna
+  DKK: 'kr.', // Danish Krone
+  EUR: '€', // Euro
+  GBP: '£', // British Pound
+  HKD: '$', // Hong Kong Dollar
+  HUF: 'Ft', // Hungarian Forint
+  IDR: 'Rp', // Indonesian Rupiah
+  ILS: '₪', // Israeli New Shekel
+  INR: '₹', // Indian Rupee
+  JPY: '¥', // Japanese Yen
+  KRW: '₩', // South Korean Won
+  MXN: '$', // Mexican Peso
+  MYR: 'RM', // Malaysian Ringgit
+  NOK: 'kr', // Norwegian Krone
+  NZD: '$', // New Zealand Dollar
+  PHP: '₱', // Philippine Peso
+  PLN: 'zł', // Polish Złoty
+  RON: 'lei', // Romanian Leu
+  RUB: '₽', // Russian Ruble
+  SEK: 'kr', // Swedish Krona
+  SGD: '$', // Singapore Dollar
+  THB: '฿', // Thai Baht
+  TRY: '₺', // Turkish Lira
+  USD: '$', // United States Dollar
+  ZAR: 'R' // South African Rand
+}
+
+const currencyOptionText = (currency: string) => {
+  return `${currencySymbols[currency]} ${currency}`
+}
+
+const currencies = Object.keys(currencySymbols)
+
+const toggleDropdown = () => {
+  showDropdown.value = !showDropdown.value
+}
+
+const hideDropdown = () => {
+  showDropdown.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
+
+const handleDocumentClick = (event: any) => {
+  if (!event.target.closest('.dropdown-container')) {
+    showDropdown.value = false
+  }
+}
 
 let showDeleteButton = ref(-1)
 const pdfRef = ref<null | HTMLElement>(null)
@@ -328,7 +398,7 @@ const generatePDF = async () => {
               value="Sub Total"
               class="text-right hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black font-bold outline-none w-[120px]"
             />
-            <div class="inline-block align-middle">{{ calculateSubtotal().toFixed(2) }}</div>
+            <div class="inline-block align-middle ml-6">{{ calculateSubtotal().toFixed(2) }}</div>
           </div>
         </div>
         <div class="flex max-w-full justify-end mx-10">
@@ -342,14 +412,36 @@ const generatePDF = async () => {
               class="text-right hover:bg-amber-100 rounded-sm hover:text-black bg-transparent focus:bg-amber-100 focus:text-black font-bold outline-none w-6"
             />
             <p class="mr-8 font-bold">%</p>
-            <div>{{ calculatedSaleTax.toFixed(2) }}</div>
+            <div class="ml-5">{{ calculatedSaleTax.toFixed(2) }}</div>
           </div>
         </div>
 
         <div class="flex max-w-full justify-end mx-10 mb-5 mt-2">
           <div class="flex gap-8 items-center w-fit text-[14px]">
             <h1>TOTAL</h1>
-            <div>{{ calculatedTotal.toFixed(2) }}</div>
+
+            <div v-if="!selectedCurrency">
+              <select v-model="selectedCurrency">
+                <option v-for="currency in currencies" :value="currency" :key="currency">
+                  {{ currencyOptionText(currency) }}
+                </option>
+              </select>
+            </div>
+            <div v-else class="flex gap-2 dropdown-container">
+              <span
+                @click="toggleDropdown"
+                class="cursor-pointer px-2 hover:bg-amber-100 hover:border-2 hover:border-black"
+                >{{ currencySymbols[selectedCurrency] }}</span
+              >
+              <div v-if="showDropdown">
+                <select v-model="selectedCurrency" @change="hideDropdown" @blur="hideDropdown">
+                  <option v-for="currency in currencies" :value="currency" :key="currency">
+                    {{ currencyOptionText(currency) }}
+                  </option>
+                </select>
+              </div>
+              {{ calculatedTotal.toFixed(2) }}
+            </div>
           </div>
         </div>
         <div class="flex flex-col max-w-full mx-10 mb-1">
